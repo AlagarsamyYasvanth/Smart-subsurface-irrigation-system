@@ -1,0 +1,109 @@
+#include <LiquidCrystal.h>
+#include <SoftwareSerial.h>
+
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+SoftwareSerial gsmSerial(0, 1);  // RX, TX pins for GSM module
+
+int sensorPin = A0;
+int sensorPin2 = A1;
+int sensorValue2 = 0;
+int percentValue2 = 0;
+int sensorValue = 0;
+int percentValue = 0;
+String readString;
+
+void setup() {
+  Serial.begin(9600);
+  gsmSerial.begin(9600);
+  lcd.begin(16, 2);
+  pinMode(9, OUTPUT);
+  pinMode(8, INPUT);
+  pinMode(11, OUTPUT);
+  pinMode(10, INPUT);
+  pinMode(12, OUTPUT);
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  sensorValue = analogRead(sensorPin);
+  Serial.print("\n\nAnalog Value: ");
+  Serial.print(sensorValue);
+  percentValue = map(sensorValue, 1023, 200, 0, 100);
+  Serial.print("\nPercentValue: ");
+  Serial.print(percentValue);
+  Serial.print("%");
+  sensorValue2 = analogRead(sensorPin2);
+  Serial.print("\n\nAnalog Value: ");
+  Serial.print(sensorValue2);
+  
+  percentValue2 = map(sensorValue2, 1023, 200, 0, 100);
+  Serial.print("\nPercentValue2: ");
+  Serial.print(percentValue2);
+  Serial.print("%");
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Moisture Level 1");
+  lcd.setCursor(0, 1);
+  lcd.print("  Percent: ");
+  lcd.print(percentValue);
+  lcd.print("%");
+  delay(2000);
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("Moisture Level 2");
+  lcd.setCursor(0, 1);
+  lcd.print("  Percent: ");
+  lcd.print(percentValue2);
+  lcd.print("%");
+  delay(2000);
+  lcd.clear();
+   {
+    if(digitalRead(8) == HIGH){
+      digitalWrite(9,LOW);
+      digitalWrite(12,LOW);
+    }else{
+      digitalWrite(9,HIGH);
+      digitalWrite(12,HIGH);
+    }
+    if(digitalRead(10) == HIGH){
+      digitalWrite(11,LOW);
+      digitalWrite(13,LOW);
+    }else{
+      digitalWrite(11,HIGH);
+      digitalWrite(13,HIGH);
+    }
+   
+  }
+
+  // Check moisture levels and send data via GSM
+  if (percentValue < 50) {
+    sendSMS("Moisture Level 1 is low!");
+  }
+
+  if (percentValue2 < 50) {
+    sendSMS("Moisture Level 2 is low!");
+  }
+
+  //  GSM module response
+  while (gsmSerial.available()) {
+    delay(50);
+    char c = gsmSerial.read();
+    readString += c;
+  }
+}
+
+// send SMS via GSM module
+void sendSMS(String message) {
+  gsmSerial.println("AT+CMGF=1"); 
+  delay(100);
+  gsmSerial.println("AT+CMGS=\"+***********\"");  
+  delay(100);
+  gsmSerial.print(message);
+  delay(100);
+  gsmSerial.println((char)26);  
+  delay(1000);
+ 
+}
+}
+
